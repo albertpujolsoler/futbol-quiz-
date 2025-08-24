@@ -159,6 +159,7 @@
            +   '<input id="pin" type="tel" inputmode="numeric" placeholder="PIN">'
            +   '<div style="height:8px"></div>'
            +   '<button id="goName" class="btn" disabled>Continuar</button>'
+           +   '<button id="testConn" class="input" style="margin-top:8px;width:100%;text-align:center;font-weight:600">Probar conexión online</button>'
            + '</div>';
     },
     name:function(){
@@ -218,6 +219,18 @@
       pin.value=state.pin;
       pin.oninput=function(e){ state.pin=e.target.value; go.disabled=(state.pin!==PIN_CODE); };
       go.onclick=function(){ if(state.pin===PIN_CODE){ state.screen='name'; render(); } };
+
+      // Probar conexión online desde la pantalla del PIN
+      var testConn = document.getElementById('testConn');
+      if (testConn){
+        testConn.onclick = function(){
+          if (!hasSB){ alert('Modo local: no detecto Supabase.'); return; }
+          sb.from('scores').select('count',{count:'exact',head:true}).then(function(res){
+            if (res.error){ alert('ONLINE fallo: ' + res.error.message); }
+            else { alert('ONLINE OK: la tabla responde ✅'); }
+          });
+        };
+      }
     }
 
     if(state.screen==='name'){
@@ -279,10 +292,12 @@
       });
       $('#home').onclick=function(){ resetGame(false); };
       $('#clear').onclick=function(){ localStorage.removeItem(LS.leaderboard); render(); };
+
+      // Probar conexión online también aquí
       var testBtn = document.getElementById('test');
       if (testBtn){
         testBtn.onclick = function(){
-          if (!hasSB){ alert('Modo local: no detecto Supabase. Revisa el script UMD y las claves.'); return; }
+          if (!hasSB){ alert('Modo local: no detecto Supabase.'); return; }
           sb.from('scores').select('count',{count:'exact',head:true}).then(function(res){
             if (res.error){ alert('ONLINE fallo: ' + res.error.message); }
             else { alert('ONLINE OK: la tabla responde ✅'); }
@@ -324,7 +339,7 @@
     for(var i=0;i<QUESTIONS_COUNT;i++){
       var q=state.questions[i],a=state.answers[i];
       if(a===q.c){ base+=1; streak+=1; } else { streak=0; }
-      if(streak>maxStreak) maxStreak=streak;
+      if(streak>maxStreak) maxStreak=maxStreak<streak?streak:maxStreak;
     }
     var bonus=Math.floor(maxStreak/STREAK_BONUS_AT);
     return {base:base,bonus:bonus,total:base+bonus,maxStreak:maxStreak};
