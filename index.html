@@ -165,14 +165,16 @@
            +   '<button id="goName" class="btn" disabled>Continuar</button>'
            + '</div>';
     },
-    name:function(){
-      return '<h1>Listo para jugar?</h1>'
-           + '<input id="player" maxlength="20" placeholder="Tu nombre">'
-           + '<div style="height:8px"></div>'
-           + '<button id="start" class="btn">Empezar</button>'
-           + '<button id="goRanking" class="input" style="margin-top:6px;width:100%;text-align:center;font-weight:600">Ver ranking</button>'
-           + '<p class="muted">El juego consiste en '+QUESTIONS_COUNT+' preguntas. Cada acierto es 1 punto; si encadenas '+STREAK_BONUS_AT+' seguidas, ganas +1 extra.</p>';
-    },
+name:function(){
+  return '<h1>Listo para jugar?</h1>'
+       + '<input id="player" maxlength="20" placeholder="Tu nombre">'
+       + '<div style="height:8px"></div>'
+       + '<button id="start" class="btn">Empezar</button>'
+       + '<p style="margin-top:10px;font-size:14px;text-align:center">'
+       +   '<a href="#" id="goRanking" style="color:var(--accent);text-decoration:underline">Ver ranking</a>'
+       + '</p>'
+       + '<p class="muted">El juego consiste en '+QUESTIONS_COUNT+' preguntas. Cada acierto es 1 punto; si encadenas '+STREAK_BONUS_AT+' seguidas, ganas +1 extra.</p>';
+},
     quiz:function(){
       var q=state.questions[state.qIndex];
       var progress=100*(SECONDS_PER_QUESTION-state.left)/SECONDS_PER_QUESTION;
