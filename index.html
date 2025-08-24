@@ -40,19 +40,23 @@
 </div></div>
 <script>
 (function(){
-  // ====== Pega aquí tus claves (o déjalas así para usar ranking local) ======
+  // ====== Claves (si las dejas tal cual, funciona en modo ranking local) ======
   const SUPABASE_URL = 'https://lhxnrmijoojreqmuvogm.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeG5ybWlqb29qcmVxbXV2b2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzA0NzIsImV4cCI6MjA3MTU0NjQ3Mn0.mqTS1JHa9XlcG2EcfOVyhBZYltoyGk1kT4xHaYEi_20';
-  var hasSB = (SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL!=='TU_URL');
+
+  // ====== Crear cliente Supabase + fallback local ======
+  var hasSB = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase && window.supabase.createClient);
   var sb = null;
-  if (hasSB && window.supabase && window.supabase.createClient) {
-    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  } else {
-    hasSB = false; // forzamos modo local si no hay supabase o claves
+  if (hasSB) {
+    try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
+    catch(e){ console.error('Supabase init error:', e); hasSB = false; }
   }
 
   // ====== Config ======
-  var PIN_CODE='1899', QUESTIONS_COUNT=20, SECONDS_PER_QUESTION=10, STREAK_BONUS_AT=10;
+  var PIN_CODE='1899';
+  var QUESTIONS_COUNT=20;
+  var SECONDS_PER_QUESTION=10;
+  var STREAK_BONUS_AT=10;
   var LS={ leaderboard:'futquiz_leaderboard_v1' };
 
   // ====== Preguntas ======
@@ -86,17 +90,25 @@
   // ====== Ranking (global si Supabase; local si no) ======
   function getLeaderboard(){
     if (hasSB){
-      return sb.from('scores').select('name,score,date').order('score',{ascending:false}).then(function(res){
-        if(res.error){ console.warn(res.error); return []; }
-        return res.data||[];
-      });
+      return sb.from('scores').select('name,score,date').order('score',{ascending:false})
+        .then(function(res){
+          if (res.error){
+            console.error('SELECT error:', res.error);
+            alert('Ranking ONLINE: ' + res.error.message);
+            return [];
+          }
+          return res.data||[];
+        });
     }
     try{ return Promise.resolve(JSON.parse(localStorage.getItem(LS.leaderboard)||'[]')); }catch(e){ return Promise.resolve([]); }
   }
   function saveScore(entry){
     if (hasSB){
       return sb.from('scores').insert(entry).then(function(res){
-        if(res.error) alert('Error guardando en Supabase: '+res.error.message);
+        if (res.error){
+          console.error('INSERT error:', res.error);
+          alert('Guardar ONLINE: ' + res.error.message);
+        }
       });
     }
     var list=[]; try{ list=JSON.parse(localStorage.getItem(LS.leaderboard)||'[]'); }catch(e){}
@@ -106,10 +118,12 @@
   }
   function isNameTaken(name){
     if (hasSB){
-      return sb.from('scores').select('name').eq('name',name).limit(1).then(function(res){
-        if(res.error){ console.warn(res.error); return false; }
-        return (res.data||[]).length>0;
-      });
+      // case-insensitive
+      return sb.from('scores').select('name').ilike('name', name).limit(1)
+        .then(function(res){
+          if (res.error){ console.warn('NAME check error:', res.error); return false; }
+          return (res.data||[]).length>0;
+        });
     }
     var list=[]; try{ list=JSON.parse(localStorage.getItem(LS.leaderboard)||'[]'); }catch(e){}
     var lower=(name||'').toLowerCase();
@@ -118,7 +132,16 @@
   }
 
   // ====== Estado ======
-  var state={screen:'gate',pin:'',name:'',questions:shuffle(QUESTIONS).slice(0,20),qIndex:0,answers:new Array(20).fill(-1),left:10,timer:null};
+  var state={
+    screen:'gate',
+    pin:'',
+    name:'',
+    questions:shuffle(QUESTIONS).slice(0,QUESTIONS_COUNT),
+    qIndex:0,
+    answers:new Array(QUESTIONS_COUNT).fill(-1),
+    left:SECONDS_PER_QUESTION,
+    timer:null
+  };
   var locked=false;
 
   // ====== Render ======
@@ -143,14 +166,14 @@
            + '<input id="player" maxlength="20" placeholder="Tu nombre">'
            + '<div style="height:8px"></div>'
            + '<button id="start" class="btn">Empezar</button>'
-           + '<p class="muted">El juego consiste en 20 preguntas futboleras. Por cada pregunta ganas 1 punto, si aciertas 10 seguidas ganas un punto extra.</p>';
-        + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
+           + '<p class="muted">El juego consiste en '+QUESTIONS_COUNT+' preguntas. Cada acierto son 1 punto; si encadenas '+STREAK_BONUS_AT+' seguidas, ganas +1 extra.</p>'
+           + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
     },
     quiz:function(){
       var q=state.questions[state.qIndex];
-      var progress=100*(10-state.left)/10;
+      var progress=100*(SECONDS_PER_QUESTION-state.left)/SECONDS_PER_QUESTION;
       var html='';
-      html+='<div class="row small"><div>Pregunta '+(state.qIndex+1)+'/20</div><div id="counter">'+state.left+'s</div></div>';
+      html+='<div class="row small"><div>Pregunta '+(state.qIndex+1)+'/'+QUESTIONS_COUNT+'</div><div id="counter">'+state.left+'s</div></div>';
       html+='<div class="progress"><div class="bar" id="bar" style="width:'+progress+'%"></div></div>';
       html+='<div class="question">'+q.t+'</div>';
       html+='<div class="opts" id="opts">';
@@ -183,7 +206,8 @@
            + '<div id="lb" class="list" style="margin-top:8px"></div>'
            + '<div style="height:8px"></div>'
            + '<button id="home" class="input" style="width:100%;text-align:center;font-weight:600">Volver al inicio</button>'
-           + '<button id="clear" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Borrar ranking local</button>';
+           + '<button id="clear" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Borrar ranking local</button>'
+           + '<button id="test" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Probar conexión online</button>';
     }
   };
 
@@ -209,12 +233,15 @@
 
     if(state.screen==='quiz'){
       if(state.timer) clearInterval(state.timer);
-      state.left=10;
+      state.left=SECONDS_PER_QUESTION;
       var bar=$('#bar'), counter=$('#counter');
       state.timer=setInterval(function(){
         state.left-=1;
         if(state.left<=0){ clearInterval(state.timer); showFeedbackAndNext(null); }
-        else { if(counter) counter.innerText=state.left+'s'; if(bar) bar.style.width=(100*(10-state.left)/10)+'%'; }
+        else {
+          if(counter) counter.innerText=state.left+'s';
+          if(bar) bar.style.width=(100*(SECONDS_PER_QUESTION-state.left)/SECONDS_PER_QUESTION)+'%';
+        }
       },1000);
 
       locked=false;
@@ -248,10 +275,20 @@
         for(var i=0;i<Math.min(list.length,50);i++){
           html+='<div class="rowitem"><div class="row" style="gap:10px"><strong>'+(i+1)+'</strong><span>'+list[i].name+'</span></div><strong>'+list[i].score+'</strong></div>';
         }
-        el.innerHTML=html;
+        el.innerHTML=html || '<div class="rowitem"><span class="small">Aún no hay puntuaciones.</span><span>—</span></div>';
       });
       $('#home').onclick=function(){ resetGame(false); };
       $('#clear').onclick=function(){ localStorage.removeItem(LS.leaderboard); render(); };
+      var testBtn = document.getElementById('test');
+      if (testBtn){
+        testBtn.onclick = function(){
+          if (!hasSB){ alert('Modo local: no detecto Supabase. Revisa el script UMD y las claves.'); return; }
+          sb.from('scores').select('count',{count:'exact',head:true}).then(function(res){
+            if (res.error){ alert('ONLINE fallo: ' + res.error.message); }
+            else { alert('ONLINE OK: la tabla responde ✅'); }
+          });
+        };
+      }
     }
   }
 
@@ -278,22 +315,29 @@
   }
 
   // ====== Flujo ======
-  function nextQ(){ if(state.qIndex+1<20){ state.qIndex++; render(); } else { if(state.timer) clearInterval(state.timer); state.screen='summary'; render(); } }
+  function nextQ(){
+    if(state.qIndex+1<QUESTIONS_COUNT){ state.qIndex++; render(); }
+    else { if(state.timer) clearInterval(state.timer); state.screen='summary'; render(); }
+  }
   function calcScore(){
     var base=0,streak=0,maxStreak=0;
-    for(var i=0;i<20;i++){
+    for(var i=0;i<QUESTIONS_COUNT;i++){
       var q=state.questions[i],a=state.answers[i];
       if(a===q.c){ base+=1; streak+=1; } else { streak=0; }
       if(streak>maxStreak) maxStreak=streak;
     }
-    var bonus=Math.floor(maxStreak/10);
+    var bonus=Math.floor(maxStreak/STREAK_BONUS_AT);
     return {base:base,bonus:bonus,total:base+bonus,maxStreak:maxStreak};
   }
-  function startQuiz(){ if(state.timer) clearInterval(state.timer); state.screen='quiz'; state.qIndex=0; state.answers=new Array(20).fill(-1); state.left=10; render(); }
+  function startQuiz(){
+    if(state.timer) clearInterval(state.timer);
+    state.screen='quiz'; state.qIndex=0; state.answers=new Array(QUESTIONS_COUNT).fill(-1);
+    state.left=SECONDS_PER_QUESTION; render();
+  }
   function resetGame(replay){
-    state.questions=shuffle(QUESTIONS).slice(0,20);
-    state.qIndex=0; state.answers=new Array(20).fill(-1);
-    state.left=10; if(state.timer) clearInterval(state.timer);
+    state.questions=shuffle(QUESTIONS).slice(0,QUESTIONS_COUNT);
+    state.qIndex=0; state.answers=new Array(QUESTIONS_COUNT).fill(-1);
+    state.left=SECONDS_PER_QUESTION; if(state.timer) clearInterval(state.timer);
     state.screen = replay ? 'quiz' : 'gate'; state.pin=''; render();
   }
 
