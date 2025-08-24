@@ -31,6 +31,7 @@
   .center{text-align:center}
   @media (max-width:420px){ body{font-size:15px} }
 </style>
+<!-- Supabase UMD global (define window.supabase) -->
 <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -39,16 +40,22 @@
 </div></div>
 <script>
 (function(){
-  // Pega tus claves aquí
+  // ====== Pega aquí tus claves (o déjalas así para usar ranking local) ======
   const SUPABASE_URL = 'https://lhxnrmijoojreqmuvogm.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeG5ybWlqb29qcmVxbXV2b2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzA0NzIsImV4cCI6MjA3MTU0NjQ3Mn0.mqTS1JHa9XlcG2EcfOVyhBZYltoyGk1kT4xHaYEi_20';
   var hasSB = (SUPABASE_URL && SUPABASE_ANON_KEY && SUPABASE_URL!=='TU_URL');
   var sb = null;
-  if (hasSB) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (hasSB && window.supabase && window.supabase.createClient) {
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } else {
+    hasSB = false; // forzamos modo local si no hay supabase o claves
+  }
 
+  // ====== Config ======
   var PIN_CODE='1899', QUESTIONS_COUNT=20, SECONDS_PER_QUESTION=10, STREAK_BONUS_AT=10;
   var LS={ leaderboard:'futquiz_leaderboard_v1' };
 
+  // ====== Preguntas ======
   var QUESTIONS=[
     { t:'¿En qué año ganó España su primer Mundial?', o:['1998','2002','2010','2014','2018'], c:2 },
     { t:'¿Qué club tiene más Champions League?', o:['AC Milan','Real Madrid','Bayern','Liverpool','Barcelona'], c:1 },
@@ -72,10 +79,11 @@
     { t:'¿Qué selección ganó el Mundial 2022?', o:['Francia','Argentina','Croacia','Brasil','Marruecos'], c:1 }
   ];
 
+  // ====== Utils ======
   function $(sel){ return document.querySelector(sel); }
   function shuffle(a){ return a.map(function(v){return {v:v,r:Math.random()};}).sort(function(x,y){return x.r-y.r;}).map(function(x){return x.v;}); }
 
-  // --- Ranking global/local ---
+  // ====== Ranking (global si Supabase; local si no) ======
   function getLeaderboard(){
     if (hasSB){
       return sb.from('scores').select('name,score,date').order('score',{ascending:false}).then(function(res){
@@ -87,7 +95,9 @@
   }
   function saveScore(entry){
     if (hasSB){
-      return sb.from('scores').insert(entry).then(function(res){ if(res.error) alert('Error: '+res.error.message); });
+      return sb.from('scores').insert(entry).then(function(res){
+        if(res.error) alert('Error guardando en Supabase: '+res.error.message);
+      });
     }
     var list=[]; try{ list=JSON.parse(localStorage.getItem(LS.leaderboard)||'[]'); }catch(e){}
     list.push(entry);
@@ -97,7 +107,8 @@
   function isNameTaken(name){
     if (hasSB){
       return sb.from('scores').select('name').eq('name',name).limit(1).then(function(res){
-        if(res.error) return false; return (res.data||[]).length>0;
+        if(res.error){ console.warn(res.error); return false; }
+        return (res.data||[]).length>0;
       });
     }
     var list=[]; try{ list=JSON.parse(localStorage.getItem(LS.leaderboard)||'[]'); }catch(e){}
@@ -106,30 +117,188 @@
     return Promise.resolve(false);
   }
 
+  // ====== Estado ======
   var state={screen:'gate',pin:'',name:'',questions:shuffle(QUESTIONS).slice(0,20),qIndex:0,answers:new Array(20).fill(-1),left:10,timer:null};
   var locked=false;
 
-  function render(){ var app=$('#app'); app.classList.remove('show'); setTimeout(function(){ app.innerHTML=screens[state.screen](); app.classList.add('show'); bind(); },120); }
-
-  var screens={
-    gate:function(){ return '<div class="center"><div class="row" style="justify-content:center;gap:10px;margin-bottom:8px"><div class="pill"><span>⚽️</span> Fútbol Quiz</div></div><h1>Introduce el PIN</h1><input id="pin" type="tel" inputmode="numeric" placeholder="PIN"><div style="height:8px"></div><button id="goName" class="btn" disabled>Continuar</button></div>'; },
-    name:function(){ return '<h1>Elige un nombre único</h1><input id="player" maxlength="20" placeholder="Tu nombre"><div style="height:8px"></div><button id="start" class="btn">Empezar</button><p class="muted">Se mostrará un ranking histórico al terminar.</p>'; },
-    quiz:function(){ var q=state.questions[state.qIndex]; var progress=100*(10-state.left)/10; var html=''; html+='<div class="row small"><div>Pregunta '+(state.qIndex+1)+'/20</div><div id="counter">'+state.left+'s</div></div>'; html+='<div class="progress"><div class="bar" id="bar" style="width:'+progress+'%"></div></div>'; html+='<div class="question">'+q.t+'</div>'; html+='<div class="opts" id="opts">'; for(var i=0;i<q.o.length;i++){ html+='<button class="opt" data-i="'+i+'">'+q.o[i]+'</button>'; } html+='</div><div id="nextSlot" style="margin-top:12px"></div>'; return html; },
-    summary:function(){ var calc=calcScore(); var html='<h2>Resultados</h2><div class="row small"><div>Puntos aciertos: '+calc.base+'</div><div>Bonus racha: +'+calc.bonus+'</div></div><div class="row small"><div>Total:</div><div style="font-weight:800">'+calc.total+'</div></div><div class="list" style="margin-top:8px">'; for(var idx=0;idx<state.questions.length;idx++){ var q=state.questions[idx]; html+='<div class="rowitem"><div class="small" style="flex:1;margin-right:8px">'+(idx+1)+'. '+q.t+'</div><div class="small" style="flex:1">'; for(var i=0;i<q.o.length;i++){ var isC=(i===q.c); var isS=(state.answers[idx]===i); var bg=isC?'var(--ok)':(isS?'var(--wrong)':'#fff'); var style='background:'+bg+';border-radius:10px;padding:4px 8px;margin-left:6px'; html+='<span style="'+style+'">'+q.o[i]+'</span>'; } html+='</div></div>'; } html+='</div><div class="row" style="margin-top:10px"><button id="save" class="btn" style="flex:1">Guardar y ver ranking</button><button id="replay" class="input" style="flex:1;text-align:center;font-weight:600">Rejugar</button></div>'; return html; },
-    leaderboard:function(){ return '<h2>Ranking histórico</h2><div id="lb" class="list" style="margin-top:8px"></div><div style="height:8px"></div><button id="home" class="input" style="width:100%;text-align:center;font-weight:600">Volver al inicio</button><button id="clear" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Borrar ranking local</button>'; }
-  };
-
-  function bind(){
-    if(state.screen==='gate'){ var pin=$('#pin'),go=$('#goName'); pin.value=state.pin; pin.oninput=function(e){ state.pin=e.target.value; go.disabled=(state.pin!==PIN_CODE); }; go.onclick=function(){ if(state.pin===PIN_CODE){ state.screen='name'; render(); } }; }
-    if(state.screen==='name'){ $('#start').onclick=function(){ var n=$('#player').value.trim(); if(!n||n.replace(/\s+/g,'').length<2){ alert('El nombre debe tener al menos 2 caracteres.'); return; } isNameTaken(n).then(function(taken){ if(taken){ alert('Ese nombre ya existe. Elige otro.'); return; } state.name=n; startQuiz(); }); }; }
-    if(state.screen==='quiz'){ if(state.timer) clearInterval(state.timer); state.left=10; var bar=$('#bar'),counter=$('#counter'); state.timer=setInterval(function(){ state.left-=1; if(state.left<=0){ clearInterval(state.timer); showFeedbackAndNext(null); } else { if(counter) counter.innerText=state.left+'s'; if(bar) bar.style.width=(100*(10-state.left)/10)+'%'; } },1000); locked=false; var opts=document.querySelectorAll('.opt'); for(var k=0;k<opts.length;k++){ opts[k].onclick=function(){ if(locked) return; locked=true; clearInterval(state.timer); var i=parseInt(this.getAttribute('data-i'),10); state.answers[state.qIndex]=i; showFeedbackAndNext(i); }; } }
-    if(state.screen==='summary'){ $('#save').onclick=function(){ var total=calcScore().total; saveScore({name:state.name,score:total,date:new Date().toISOString()}).then(function(){ state.screen='leaderboard'; render(); }); }; $('#replay').onclick=function(){ resetGame(true); }; }
-    if(state.screen==='leaderboard'){ getLeaderboard().then(function(list){ var el=$('#lb'); var html=''; list.sort(function(a,b){return (b.score||0)-(a.score||0);}); for(var i=0;i<Math.min(list.length,50);i++){ html+='<div class="rowitem"><div class="row" style="gap:10px"><strong>'+(i+1)+'</strong><span>'+list[i].name+'</span></div><strong>'+list[i].score+'</strong></div>'; } el.innerHTML=html; }); $('#home').onclick=function(){ resetGame(false); }; $('#clear').onclick=function(){ localStorage.removeItem(LS.leaderboard); render(); }; }
+  // ====== Render ======
+  function render(){
+    var app=$('#app');
+    app.classList.remove('show');
+    setTimeout(function(){ app.innerHTML=screens[state.screen](); app.classList.add('show'); bind(); },120);
   }
 
-  function showFeedbackAndNext(selectedIndex){ var q=state.questions[state.qIndex]; var opts=document.querySelectorAll('.opt'); for(var j=0;j<opts.length;j++){ var idx=parseInt(opts[j].getAttribute('data-i'),10); if(idx===q.c){ opts[j].style.background='var(--ok)'; opts[j].style.color='#fff'; } else if(selectedIndex!==null&&idx===selectedIndex){ opts[j].style.background='var(--wrong)'; } else { opts[j].style.opacity=0.6; } opts[j].disabled=true; } var slot=$('#nextSlot'); if(slot&&!slot.firstChild){ var btnNext=document.createElement('button'); btnNext.innerText='Siguiente'; btnNext.className='btn'; btnNext.style.width='100%'; btnNext.onclick=function(){ nextQ(); }; slot.appendChild(btnNext); } }
+  var screens={
+    gate:function(){
+      return '<div class="center">'
+           +   '<div class="row" style="justify-content:center;gap:10px;margin-bottom:8px"><div class="pill"><span>⚽️</span> Fútbol Quiz — Online</div></div>'
+           +   '<h1>Introduce el PIN</h1>'
+           +   '<input id="pin" type="tel" inputmode="numeric" placeholder="PIN">'
+           +   '<div style="height:8px"></div>'
+           +   '<button id="goName" class="btn" disabled>Continuar</button>'
+           + '</div>';
+    },
+    name:function(){
+      return '<h1>Elige un nombre único</h1>'
+           + '<input id="player" maxlength="20" placeholder="Tu nombre">'
+           + '<div style="height:8px"></div>'
+           + '<button id="start" class="btn">Empezar</button>'
+           + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
+    },
+    quiz:function(){
+      var q=state.questions[state.qIndex];
+      var progress=100*(10-state.left)/10;
+      var html='';
+      html+='<div class="row small"><div>Pregunta '+(state.qIndex+1)+'/20</div><div id="counter">'+state.left+'s</div></div>';
+      html+='<div class="progress"><div class="bar" id="bar" style="width:'+progress+'%"></div></div>';
+      html+='<div class="question">'+q.t+'</div>';
+      html+='<div class="opts" id="opts">';
+      for(var i=0;i<q.o.length;i++){ html+='<button class="opt" data-i="'+i+'">'+q.o[i]+'</button>'; }
+      html+='</div><div id="nextSlot" style="margin-top:12px"></div>';
+      return html;
+    },
+    summary:function(){
+      var calc=calcScore();
+      var html='<h2>Resultados</h2>'
+              +'<div class="row small"><div>Puntos aciertos: '+calc.base+'</div><div>Bonus racha: +'+calc.bonus+'</div></div>'
+              +'<div class="row small"><div>Total:</div><div style="font-weight:800">'+calc.total+'</div></div>'
+              +'<div class="list" style="margin-top:8px">';
+      for(var idx=0; idx<state.questions.length; idx++){
+        var q=state.questions[idx];
+        html+='<div class="rowitem"><div class="small" style="flex:1;margin-right:8px">'+(idx+1)+'. '+q.t+'</div><div class="small" style="flex:1">';
+        for(var i=0;i<q.o.length;i++){
+          var isC=(i===q.c), isS=(state.answers[idx]===i);
+          var bg=isC?'var(--ok)':(isS?'var(--wrong)':'#fff');
+          var style='background:'+bg+';border-radius:10px;padding:4px 8px;margin-left:6px';
+          html+='<span style="'+style+'">'+q.o[i]+'</span>';
+        }
+        html+='</div></div>';
+      }
+      html+='</div><div class="row" style="margin-top:10px"><button id="save" class="btn" style="flex:1">Guardar y ver ranking</button><button id="replay" class="input" style="flex:1;text-align:center;font-weight:600">Rejugar</button></div>';
+      return html;
+    },
+    leaderboard:function(){
+      return '<h2>Ranking histórico</h2>'
+           + '<div id="lb" class="list" style="margin-top:8px"></div>'
+           + '<div style="height:8px"></div>'
+           + '<button id="home" class="input" style="width:100%;text-align:center;font-weight:600">Volver al inicio</button>'
+           + '<button id="clear" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Borrar ranking local</button>';
+    }
+  };
 
-  function nextQ(){ if(state.qIndex+1<20){ state.qIndex++; render(); } else { clearInterval(state.timer); state.screen='summary'; render(); } }
-  function calcScore(){ var base=0,streak=0,maxStreak=0; for(var i=0;i<20;i++){ var q=state.questions[i],a=state.answers[i]; if(a===q.c){ base+=1; streak+=1; } else { streak=0; } if(streak>maxStreak) maxStreak=streak; } var bonus=Math.floor(maxStreak/10); return {base:base,bonus:bonus,total:base+bonus,maxStreak:maxStreak}; }
+  // ====== Bind ======
+  function bind(){
+    if(state.screen==='gate'){
+      var pin=$('#pin'), go=$('#goName');
+      pin.value=state.pin;
+      pin.oninput=function(e){ state.pin=e.target.value; go.disabled=(state.pin!==PIN_CODE); };
+      go.onclick=function(){ if(state.pin===PIN_CODE){ state.screen='name'; render(); } };
+    }
+
+    if(state.screen==='name'){
+      $('#start').onclick=function(){
+        var n=$('#player').value.trim();
+        if(!n || n.replace(/\s+/g,'').length<2){ alert('El nombre debe tener al menos 2 caracteres.'); return; }
+        isNameTaken(n).then(function(taken){
+          if(taken){ alert('Ese nombre ya existe. Elige otro.'); return; }
+          state.name=n; startQuiz();
+        });
+      };
+    }
+
+    if(state.screen==='quiz'){
+      if(state.timer) clearInterval(state.timer);
+      state.left=10;
+      var bar=$('#bar'), counter=$('#counter');
+      state.timer=setInterval(function(){
+        state.left-=1;
+        if(state.left<=0){ clearInterval(state.timer); showFeedbackAndNext(null); }
+        else { if(counter) counter.innerText=state.left+'s'; if(bar) bar.style.width=(100*(10-state.left)/10)+'%'; }
+      },1000);
+
+      locked=false;
+      var opts=document.querySelectorAll('.opt');
+      for(var k=0;k<opts.length;k++){
+        opts[k].onclick=function(){
+          if(locked) return;
+          locked=true;
+          clearInterval(state.timer);
+          var i=parseInt(this.getAttribute('data-i'),10);
+          state.answers[state.qIndex]=i;
+          showFeedbackAndNext(i);
+        };
+      }
+    }
+
+    if(state.screen==='summary'){
+      $('#save').onclick=function(){
+        var total=calcScore().total;
+        saveScore({name:state.name,score:total,date:new Date().toISOString()}).then(function(){
+          state.screen='leaderboard'; render();
+        });
+      };
+      $('#replay').onclick=function(){ resetGame(true); };
+    }
+
+    if(state.screen==='leaderboard'){
+      getLeaderboard().then(function(list){
+        var el=$('#lb'), html='';
+        list.sort(function(a,b){return (b.score||0)-(a.score||0);});
+        for(var i=0;i<Math.min(list.length,50);i++){
+          html+='<div class="rowitem"><div class="row" style="gap:10px"><strong>'+(i+1)+'</strong><span>'+list[i].name+'</span></div><strong>'+list[i].score+'</strong></div>';
+        }
+        el.innerHTML=html;
+      });
+      $('#home').onclick=function(){ resetGame(false); };
+      $('#clear').onclick=function(){ localStorage.removeItem(LS.leaderboard); render(); };
+    }
+  }
+
+  // ====== Feedback + Siguiente ======
+  function showFeedbackAndNext(selectedIndex){
+    var q=state.questions[state.qIndex];
+    var opts=document.querySelectorAll('.opt');
+    for(var j=0;j<opts.length;j++){
+      var idx=parseInt(opts[j].getAttribute('data-i'),10);
+      if(idx===q.c){ opts[j].style.background='var(--ok)'; opts[j].style.color='#fff'; }
+      else if(selectedIndex!==null && idx===selectedIndex){ opts[j].style.background='var(--wrong)'; }
+      else { opts[j].style.opacity=0.6; }
+      opts[j].disabled=true;
+    }
+    var slot=$('#nextSlot');
+    if(slot && !slot.firstChild){
+      var btnNext=document.createElement('button');
+      btnNext.innerText='Siguiente';
+      btnNext.className='btn';
+      btnNext.style.width='100%';
+      btnNext.onclick=function(){ nextQ(); };
+      slot.appendChild(btnNext);
+    }
+  }
+
+  // ====== Flujo ======
+  function nextQ(){ if(state.qIndex+1<20){ state.qIndex++; render(); } else { if(state.timer) clearInterval(state.timer); state.screen='summary'; render(); } }
+  function calcScore(){
+    var base=0,streak=0,maxStreak=0;
+    for(var i=0;i<20;i++){
+      var q=state.questions[i],a=state.answers[i];
+      if(a===q.c){ base+=1; streak+=1; } else { streak=0; }
+      if(streak>maxStreak) maxStreak=streak;
+    }
+    var bonus=Math.floor(maxStreak/10);
+    return {base:base,bonus:bonus,total:base+bonus,maxStreak:maxStreak};
+  }
   function startQuiz(){ if(state.timer) clearInterval(state.timer); state.screen='quiz'; state.qIndex=0; state.answers=new Array(20).fill(-1); state.left=10; render(); }
-  function resetGame(replay){ state.questions=shuffle(QUESTIONS).slice(0,20); state.qIndex=0; state.answers=new Array(20).fill(-1);
+  function resetGame(replay){
+    state.questions=shuffle(QUESTIONS).slice(0,20);
+    state.qIndex=0; state.answers=new Array(20).fill(-1);
+    state.left=10; if(state.timer) clearInterval(state.timer);
+    state.screen = replay ? 'quiz' : 'gate'; state.pin=''; render();
+  }
+
+  // init
+  render();
+})();
+</script>
+</body>
+</html>
