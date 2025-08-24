@@ -41,8 +41,8 @@
 <script>
 (function(){
   // <<< Pega tus claves aquí >>>
-  const SUPABASE_URL = 'PÉGAME_AQUÍ_TU_URL';
-  const SUPABASE_ANON_KEY = 'PÉGAME_AQUÍ_TU_ANONKEY';
+  const SUPABASE_URL = 'https://lhxnrmijoojreqmuvogm.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeG5ybWlqb29qcmVxbXV2b2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzA0NzIsImV4cCI6MjA3MTU0NjQ3Mn0.mqTS1JHa9XlcG2EcfOVyhBZYltoyGk1kT4xHaYEi_20';
   const hasSB = !!(SUPABASE_URL && SUPABASE_ANON_KEY);
   var sb = null;
   if (hasSB) sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
