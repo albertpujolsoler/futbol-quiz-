@@ -1,3 +1,4 @@
+
 <!doctype html>
 <html lang="es">
 <head>
@@ -50,8 +51,9 @@
   var PIN_CODE='1899', QUESTIONS_COUNT=40, SECONDS_PER_QUESTION=10, STREAK_BONUS_AT=10;
   var LS={ leaderboard:'futquiz_leaderboard_v1' };
 
-  // ====== Preguntas ======
+  // ====== Preguntas (40 en total, se juegan TODAS) ======
   var QUESTIONS=[
+    // 20 originales
     { t:'¿En qué año ganó España su primer Mundial?', o:['1998','2002','2010','2014','2018'], c:2 },
     { t:'¿Qué club tiene más Champions League?', o:['AC Milan','Real Madrid','Bayern','Liverpool','Barcelona'], c:1 },
     { t:'¿Quién es el máximo goleador histórico de la selección argentina?', o:['Batistuta','Agüero','Messi','Maradona','Higuaín'], c:2 },
@@ -71,33 +73,33 @@
     { t:'¿Qué tarjetas usa el árbitro?', o:['Roja','Amarilla','Verde','Azul','Solo amarilla y roja'], c:4 },
     { t:'¿Máximo goleador histórico de la Champions?', o:['Messi','Cristiano Ronaldo','Lewandowski','Raúl','Benzema'], c:1 },
     { t:'¿Qué club es apodado "Rossoneri"?', o:['Juventus','Inter','Milan','Napoli','Fiorentina'], c:2 },
-    { t:'¿Qué selección ganó el Mundial 2022?', o:['Francia','Argentina','Croacia','Brasil','Marruecos'], c:1 }
-{ t:'¿Qué selección ganó el primer Mundial en 1930?', o:['Brasil','Argentina','Uruguay','Italia','Alemania'], c:2 },
-  { t:'¿Qué portero fue apodado “La Araña Negra”?', o:['Yashin','Casillas','Neuer','Buffon','Schmeichel'], c:0 },
-  { t:'¿Qué jugador es conocido como “El Fenómeno”?', o:['Ronaldo Nazário','Ronaldinho','Cristiano Ronaldo','Rivaldo','Romário'], c:0 },
-  { t:'¿Qué club inglés tiene el apodo de “The Reds”?', o:['Chelsea','Liverpool','Arsenal','Manchester United','Everton'], c:1 },
-  { t:'¿Quién anotó el famoso gol con “la mano de Dios”?', o:['Pelé','Maradona','Kempes','Caniggia','Messi'], c:1 },
-  { t:'¿Qué selección fue campeona de la Eurocopa 2016?', o:['Francia','Alemania','Portugal','España','Italia'], c:2 },
-  { t:'¿En qué año debutó Lionel Messi con el Barcelona en partido oficial?', o:['2002','2003','2004','2005','2006'], c:2 },
-  { t:'¿Qué jugador es apodado “La Pulga”?', o:['Agüero','Messi','Maradona','Di María','Tevez'], c:1 },
-  { t:'¿Qué país fue anfitrión del Mundial 2002 junto con Corea del Sur?', o:['Japón','China','Tailandia','Vietnam','Indonesia'], c:0 },
-  { t:'¿Cuál es el club con más títulos de la Serie A italiana?', o:['Inter','Juventus','Milan','Roma','Napoli'], c:1 },
-  { t:'¿Qué selección eliminó a España en el Mundial 2002 con el “gol fantasma”?', o:['Corea del Sur','Japón','Alemania','Brasil','Turquía'], c:0 },
-  { t:'¿Qué jugador marcó el gol de la final del Mundial 2010?', o:['Villa','Torres','Iniesta','Xavi','Ramos'], c:2 },
-  { t:'¿En qué país nació Zlatan Ibrahimović?', o:['Bosnia','Croacia','Suecia','Serbia','Kosovo'], c:2 },
-  { t:'¿Qué entrenador fue conocido como “The Special One”?', o:['Guardiola','Mourinho','Ferguson','Wenger','Ancelotti'], c:1 },
-  { t:'¿Qué país ganó la Copa América 2021?', o:['Brasil','Argentina','Chile','Uruguay','Colombia'], c:1 },
-  { t:'¿Qué club ganó la Champions League en 2005 en la famosa final de Estambul?', o:['Milan','Liverpool','Chelsea','Juventus','Real Madrid'], c:1 },
-  { t:'¿Cuál fue la primera selección africana en llegar a semifinales de un Mundial?', o:['Nigeria','Senegal','Ghana','Marruecos','Camerún'], c:3 },
-  { t:'¿Qué dorsal llevaba Diego Maradona en el Mundial 1986?', o:['7','9','10','11','8'], c:2 },
-  { t:'¿Qué jugador ganó 5 Balones de Oro antes de 2020 además de Messi y Cristiano?', o:['Platini','Cruyff','Van Basten','Ronaldo Nazário','Nadie'], c:4 },
-  { t:'¿Qué selección es conocida como “Los Tres Leones”?', o:['Escocia','Inglaterra','Irlanda','Gales','Países Bajos'], c:1 }
-]
+    { t:'¿Qué selección ganó el Mundial 2022?', o:['Francia','Argentina','Croacia','Brasil','Marruecos'], c:1 },
+
+    // 20 nuevas
+    { t:'¿Qué selección ganó el primer Mundial en 1930?', o:['Brasil','Argentina','Uruguay','Italia','Alemania'], c:2 },
+    { t:'¿Qué portero fue apodado “La Araña Negra”?', o:['Yashin','Casillas','Neuer','Buffon','Schmeichel'], c:0 },
+    { t:'¿Qué jugador es conocido como “El Fenómeno”?', o:['Ronaldo Nazário','Ronaldinho','Cristiano Ronaldo','Rivaldo','Romário'], c:0 },
+    { t:'¿Qué club inglés tiene el apodo de “The Reds”?', o:['Chelsea','Liverpool','Arsenal','Manchester United','Everton'], c:1 },
+    { t:'¿Quién anotó el famoso gol con “la mano de Dios”?', o:['Pelé','Maradona','Kempes','Caniggia','Messi'], c:1 },
+    { t:'¿Qué selección fue campeona de la Eurocopa 2016?', o:['Francia','Alemania','Portugal','España','Italia'], c:2 },
+    { t:'¿En qué año debutó Lionel Messi con el Barcelona en partido oficial?', o:['2002','2003','2004','2005','2006'], c:2 },
+    { t:'¿Qué jugador es apodado “La Pulga”?', o:['Agüero','Messi','Maradona','Di María','Tevez'], c:1 },
+    { t:'¿Qué país fue anfitrión del Mundial 2002 junto con Corea del Sur?', o:['Japón','China','Tailandia','Vietnam','Indonesia'], c:0 },
+    { t:'¿Cuál es el club con más títulos de la Serie A italiana?', o:['Inter','Juventus','Milan','Roma','Napoli'], c:1 },
+    { t:'¿Qué selección eliminó a España en el Mundial 2002 con el “gol fantasma”?', o:['Corea del Sur','Japón','Alemania','Brasil','Turquía'], c:0 },
+    { t:'¿Qué jugador marcó el gol de la final del Mundial 2010?', o:['Villa','Torres','Iniesta','Xavi','Ramos'], c:2 },
+    { t:'¿En qué país nació Zlatan Ibrahimović?', o:['Bosnia','Croacia','Suecia','Serbia','Kosovo'], c:2 },
+    { t:'¿Qué entrenador fue conocido como “The Special One”?', o:['Guardiola','Mourinho','Ferguson','Wenger','Ancelotti'], c:1 },
+    { t:'¿Qué país ganó la Copa América 2021?', o:['Brasil','Argentina','Chile','Uruguay','Colombia'], c:1 },
+    { t:'¿Qué club ganó la Champions League en 2005 en la famosa final de Estambul?', o:['Milan','Liverpool','Chelsea','Juventus','Real Madrid'], c:1 },
+    { t:'¿Cuál fue la primera selección africana en llegar a semifinales de un Mundial?', o:['Nigeria','Senegal','Ghana','Marruecos','Camerún'], c:3 },
+    { t:'¿Qué dorsal llevaba Diego Maradona en el Mundial 1986?', o:['7','9','10','11','8'], c:2 },
+    { t:'¿Qué jugador ganó 5 Balones de Oro antes de 2020 además de Messi y Cristiano?', o:['Platini','Cruyff','Van Basten','Ronaldo Nazário','Nadie'], c:4 },
+    { t:'¿Qué selección es conocida como “Los Tres Leones”?', o:['Escocia','Inglaterra','Irlanda','Gales','Países Bajos'], c:1 }
   ];
 
   // ====== Utils ======
   function $(sel){ return document.querySelector(sel); }
-  function shuffle(a){ return a.map(function(v){return {v:v,r:Math.random()};}).sort(function(x,y){return x.r-y.r;}).map(function(x){return x.v;}); }
 
   // ====== Ranking ======
   function getLeaderboard(){
@@ -138,9 +140,9 @@
     screen:'gate',
     pin:'',
     name:'',
-    questions:shuffle(QUESTIONS).slice(0,QUESTIONS_COUNT),
+    questions:QUESTIONS.slice(0,40), // TODAS, sin aleatoriedad
     qIndex:0,
-    answers:new Array(QUESTIONS_COUNT).fill(-1),
+    answers:new Array(40).fill(-1),
     left:SECONDS_PER_QUESTION,
     timer:null
   };
@@ -274,7 +276,7 @@
       getLeaderboard().then(function(list){
         var el=$('#lb'), html='';
         list.sort(function(a,b){return (b.score||0)-(a.score||0);});
-        for(var i=0;i<Math.min(list.length,50);i++){
+        for(var i=0;i<Math.min(list.length,100);i++){
           html+='<div class="rowitem"><div class="row" style="gap:10px"><strong>'+(i+1)+'</strong><span>'+list[i].name+'</span></div><strong>'+list[i].score+'</strong></div>';
         }
         el.innerHTML=html || '<div class="rowitem"><span class="small">Aún no hay puntuaciones.</span><span>—</span></div>';
@@ -326,7 +328,7 @@
     state.left=SECONDS_PER_QUESTION; render();
   }
   function resetGame(replay){
-    state.questions=shuffle(QUESTIONS).slice(0,QUESTIONS_COUNT);
+    state.questions=QUESTIONS.slice(0,QUESTIONS_COUNT); // sin aleatoriedad
     state.qIndex=0; state.answers=new Array(QUESTIONS_COUNT).fill(-1);
     state.left=SECONDS_PER_QUESTION; if(state.timer) clearInterval(state.timer);
     state.screen = replay ? 'quiz' : 'gate'; state.pin=''; render();
