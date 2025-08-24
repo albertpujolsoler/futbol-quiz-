@@ -31,7 +31,7 @@
   .center{text-align:center}
   @media (max-width:420px){ body{font-size:15px} }
 </style>
-<!-- Supabase UMD global (define window.supabase) -->
+<!-- Cargar Supabase antes (sin defer) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -40,11 +40,9 @@
 </div></div>
 <script>
 (function(){
-  // ====== Claves (si las dejas tal cual, funciona en modo ranking local) ======
+  // ====== Claves Supabase (ranking online). Si fallan, se usa modo local automáticamente ======
   const SUPABASE_URL = 'https://lhxnrmijoojreqmuvogm.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeG5ybWlqb29qcmVxbXV2b2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzA0NzIsImV4cCI6MjA3MTU0NjQ3Mn0.mqTS1JHa9XlcG2EcfOVyhBZYltoyGk1kT4xHaYEi_20';
-
-  // ====== Crear cliente Supabase + fallback local ======
   var hasSB = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase && window.supabase.createClient);
   var sb = null;
   if (hasSB) {
@@ -220,7 +218,6 @@
       pin.oninput=function(e){ state.pin=e.target.value; go.disabled=(state.pin!==PIN_CODE); };
       go.onclick=function(){ if(state.pin===PIN_CODE){ state.screen='name'; render(); } };
 
-      // Probar conexión online desde la pantalla del PIN
       var testConn = document.getElementById('testConn');
       if (testConn){
         testConn.onclick = function(){
@@ -293,7 +290,6 @@
       $('#home').onclick=function(){ resetGame(false); };
       $('#clear').onclick=function(){ localStorage.removeItem(LS.leaderboard); render(); };
 
-      // Probar conexión online también aquí
       var testBtn = document.getElementById('test');
       if (testBtn){
         testBtn.onclick = function(){
@@ -339,7 +335,7 @@
     for(var i=0;i<QUESTIONS_COUNT;i++){
       var q=state.questions[i],a=state.answers[i];
       if(a===q.c){ base+=1; streak+=1; } else { streak=0; }
-      if(streak>maxStreak) maxStreak=maxStreak<streak?streak:maxStreak;
+      if(streak>maxStreak) maxStreak=streak;
     }
     var bonus=Math.floor(maxStreak/STREAK_BONUS_AT);
     return {base:base,bonus:bonus,total:base+bonus,maxStreak:maxStreak};
