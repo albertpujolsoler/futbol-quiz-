@@ -31,7 +31,6 @@
   .center{text-align:center}
   @media (max-width:420px){ body{font-size:15px} }
 </style>
-<!-- Cargar Supabase antes (sin defer) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
@@ -40,21 +39,15 @@
 </div></div>
 <script>
 (function(){
-  // ====== Claves Supabase (ranking online). Si fallan, se usa modo local automáticamente ======
+  // ====== Supabase ======
   const SUPABASE_URL = 'https://lhxnrmijoojreqmuvogm.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxoeG5ybWlqb29qcmVxbXV2b2dtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU5NzA0NzIsImV4cCI6MjA3MTU0NjQ3Mn0.mqTS1JHa9XlcG2EcfOVyhBZYltoyGk1kT4xHaYEi_20';
   var hasSB = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase && window.supabase.createClient);
   var sb = null;
-  if (hasSB) {
-    try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); }
-    catch(e){ console.error('Supabase init error:', e); hasSB = false; }
-  }
+  if (hasSB) { try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){ console.error('Supabase init error:', e); hasSB=false; } }
 
   // ====== Config ======
-  var PIN_CODE='1899';
-  var QUESTIONS_COUNT=20;
-  var SECONDS_PER_QUESTION=10;
-  var STREAK_BONUS_AT=10;
+  var PIN_CODE='1899', QUESTIONS_COUNT=20, SECONDS_PER_QUESTION=10, STREAK_BONUS_AT=10;
   var LS={ leaderboard:'futquiz_leaderboard_v1' };
 
   // ====== Preguntas ======
@@ -85,28 +78,20 @@
   function $(sel){ return document.querySelector(sel); }
   function shuffle(a){ return a.map(function(v){return {v:v,r:Math.random()};}).sort(function(x,y){return x.r-y.r;}).map(function(x){return x.v;}); }
 
-  // ====== Ranking (global si Supabase; local si no) ======
+  // ====== Ranking ======
   function getLeaderboard(){
     if (hasSB){
-      return sb.from('scores').select('name,score,date').order('score',{ascending:false})
-        .then(function(res){
-          if (res.error){
-            console.error('SELECT error:', res.error);
-            alert('Ranking ONLINE: ' + res.error.message);
-            return [];
-          }
-          return res.data||[];
-        });
+      return sb.from('scores').select('name,score,date').order('score',{ascending:false}).then(function(res){
+        if (res.error){ console.error('SELECT error:', res.error); alert('Ranking ONLINE: '+res.error.message); return []; }
+        return res.data||[];
+      });
     }
     try{ return Promise.resolve(JSON.parse(localStorage.getItem(LS.leaderboard)||'[]')); }catch(e){ return Promise.resolve([]); }
   }
   function saveScore(entry){
     if (hasSB){
       return sb.from('scores').insert(entry).then(function(res){
-        if (res.error){
-          console.error('INSERT error:', res.error);
-          alert('Guardar ONLINE: ' + res.error.message);
-        }
+        if(res.error){ console.error('INSERT error:', res.error); alert('Guardar ONLINE: '+res.error.message); }
       });
     }
     var list=[]; try{ list=JSON.parse(localStorage.getItem(LS.leaderboard)||'[]'); }catch(e){}
@@ -116,12 +101,10 @@
   }
   function isNameTaken(name){
     if (hasSB){
-      // case-insensitive
-      return sb.from('scores').select('name').ilike('name', name).limit(1)
-        .then(function(res){
-          if (res.error){ console.warn('NAME check error:', res.error); return false; }
-          return (res.data||[]).length>0;
-        });
+      return sb.from('scores').select('name').ilike('name', name).limit(1).then(function(res){
+        if(res.error){ console.warn('NAME check error:', res.error); return false; }
+        return (res.data||[]).length>0;
+      });
     }
     var list=[]; try{ list=JSON.parse(localStorage.getItem(LS.leaderboard)||'[]'); }catch(e){}
     var lower=(name||'').toLowerCase();
@@ -157,7 +140,6 @@
            +   '<input id="pin" type="tel" inputmode="numeric" placeholder="PIN">'
            +   '<div style="height:8px"></div>'
            +   '<button id="goName" class="btn" disabled>Continuar</button>'
-           +   '<button id="testConn" class="input" style="margin-top:8px;width:100%;text-align:center;font-weight:600">Probar conexión online</button>'
            + '</div>';
     },
     name:function(){
@@ -165,6 +147,7 @@
            + '<input id="player" maxlength="20" placeholder="Tu nombre">'
            + '<div style="height:8px"></div>'
            + '<button id="start" class="btn">Empezar</button>'
+           + '<button id="goRanking" class="input" style="margin-top:6px;width:100%;text-align:center;font-weight:600">Ver ranking</button>'
            + '<p class="muted">El juego consiste en '+QUESTIONS_COUNT+' preguntas. Cada acierto son 1 punto; si encadenas '+STREAK_BONUS_AT+' seguidas, ganas +1 extra.</p>'
            + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
     },
@@ -204,9 +187,7 @@
       return '<h2>Ranking histórico</h2>'
            + '<div id="lb" class="list" style="margin-top:8px"></div>'
            + '<div style="height:8px"></div>'
-           + '<button id="home" class="input" style="width:100%;text-align:center;font-weight:600">Volver al inicio</button>'
-           + '<button id="clear" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Borrar ranking local</button>'
-           + '<button id="test" class="input" style="width:100%;text-align:center;font-weight:600;margin-top:6px">Probar conexión online</button>';
+           + '<button id="home" class="input" style="width:100%;text-align:center;font-weight:600">Volver al inicio</button>';
     }
   };
 
@@ -217,17 +198,6 @@
       pin.value=state.pin;
       pin.oninput=function(e){ state.pin=e.target.value; go.disabled=(state.pin!==PIN_CODE); };
       go.onclick=function(){ if(state.pin===PIN_CODE){ state.screen='name'; render(); } };
-
-      var testConn = document.getElementById('testConn');
-      if (testConn){
-        testConn.onclick = function(){
-          if (!hasSB){ alert('Modo local: no detecto Supabase.'); return; }
-          sb.from('scores').select('count',{count:'exact',head:true}).then(function(res){
-            if (res.error){ alert('ONLINE fallo: ' + res.error.message); }
-            else { alert('ONLINE OK: la tabla responde ✅'); }
-          });
-        };
-      }
     }
 
     if(state.screen==='name'){
@@ -239,6 +209,8 @@
           state.name=n; startQuiz();
         });
       };
+      var gr=$('#goRanking');
+      if(gr){ gr.onclick=function(){ state.screen='leaderboard'; render(); }; }
     }
 
     if(state.screen==='quiz'){
@@ -288,18 +260,6 @@
         el.innerHTML=html || '<div class="rowitem"><span class="small">Aún no hay puntuaciones.</span><span>—</span></div>';
       });
       $('#home').onclick=function(){ resetGame(false); };
-      $('#clear').onclick=function(){ localStorage.removeItem(LS.leaderboard); render(); };
-
-      var testBtn = document.getElementById('test');
-      if (testBtn){
-        testBtn.onclick = function(){
-          if (!hasSB){ alert('Modo local: no detecto Supabase.'); return; }
-          sb.from('scores').select('count',{count:'exact',head:true}).then(function(res){
-            if (res.error){ alert('ONLINE fallo: ' + res.error.message); }
-            else { alert('ONLINE OK: la tabla responde ✅'); }
-          });
-        };
-      }
     }
   }
 
