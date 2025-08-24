@@ -139,11 +139,12 @@
            + '</div>';
     },
     name:function(){
-      return '<h1>Elige un nombre único</h1>'
+      return '<h1>Listo para jugar?</h1>'
            + '<input id="player" maxlength="20" placeholder="Tu nombre">'
            + '<div style="height:8px"></div>'
            + '<button id="start" class="btn">Empezar</button>'
-           + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
+           + '<p class="muted">El juego consiste en 20 preguntas futboleras. Por cada pregunta ganas 1 punto, si aciertas 10 seguidas ganas un punto extra.</p>';
+        + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
     },
     quiz:function(){
       var q=state.questions[state.qIndex];
