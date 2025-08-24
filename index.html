@@ -47,7 +47,7 @@
   if (hasSB) { try { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){ console.error('Supabase init error:', e); hasSB=false; } }
 
   // ====== Config ======
-  var PIN_CODE='1899', QUESTIONS_COUNT=20, SECONDS_PER_QUESTION=10, STREAK_BONUS_AT=10;
+  var PIN_CODE='1899', QUESTIONS_COUNT=40, SECONDS_PER_QUESTION=10, STREAK_BONUS_AT=10;
   var LS={ leaderboard:'futquiz_leaderboard_v1' };
 
   // ====== Preguntas ======
@@ -72,6 +72,27 @@
     { t:'¿Máximo goleador histórico de la Champions?', o:['Messi','Cristiano Ronaldo','Lewandowski','Raúl','Benzema'], c:1 },
     { t:'¿Qué club es apodado "Rossoneri"?', o:['Juventus','Inter','Milan','Napoli','Fiorentina'], c:2 },
     { t:'¿Qué selección ganó el Mundial 2022?', o:['Francia','Argentina','Croacia','Brasil','Marruecos'], c:1 }
+{ t:'¿Qué selección ganó el primer Mundial en 1930?', o:['Brasil','Argentina','Uruguay','Italia','Alemania'], c:2 },
+  { t:'¿Qué portero fue apodado “La Araña Negra”?', o:['Yashin','Casillas','Neuer','Buffon','Schmeichel'], c:0 },
+  { t:'¿Qué jugador es conocido como “El Fenómeno”?', o:['Ronaldo Nazário','Ronaldinho','Cristiano Ronaldo','Rivaldo','Romário'], c:0 },
+  { t:'¿Qué club inglés tiene el apodo de “The Reds”?', o:['Chelsea','Liverpool','Arsenal','Manchester United','Everton'], c:1 },
+  { t:'¿Quién anotó el famoso gol con “la mano de Dios”?', o:['Pelé','Maradona','Kempes','Caniggia','Messi'], c:1 },
+  { t:'¿Qué selección fue campeona de la Eurocopa 2016?', o:['Francia','Alemania','Portugal','España','Italia'], c:2 },
+  { t:'¿En qué año debutó Lionel Messi con el Barcelona en partido oficial?', o:['2002','2003','2004','2005','2006'], c:2 },
+  { t:'¿Qué jugador es apodado “La Pulga”?', o:['Agüero','Messi','Maradona','Di María','Tevez'], c:1 },
+  { t:'¿Qué país fue anfitrión del Mundial 2002 junto con Corea del Sur?', o:['Japón','China','Tailandia','Vietnam','Indonesia'], c:0 },
+  { t:'¿Cuál es el club con más títulos de la Serie A italiana?', o:['Inter','Juventus','Milan','Roma','Napoli'], c:1 },
+  { t:'¿Qué selección eliminó a España en el Mundial 2002 con el “gol fantasma”?', o:['Corea del Sur','Japón','Alemania','Brasil','Turquía'], c:0 },
+  { t:'¿Qué jugador marcó el gol de la final del Mundial 2010?', o:['Villa','Torres','Iniesta','Xavi','Ramos'], c:2 },
+  { t:'¿En qué país nació Zlatan Ibrahimović?', o:['Bosnia','Croacia','Suecia','Serbia','Kosovo'], c:2 },
+  { t:'¿Qué entrenador fue conocido como “The Special One”?', o:['Guardiola','Mourinho','Ferguson','Wenger','Ancelotti'], c:1 },
+  { t:'¿Qué país ganó la Copa América 2021?', o:['Brasil','Argentina','Chile','Uruguay','Colombia'], c:1 },
+  { t:'¿Qué club ganó la Champions League en 2005 en la famosa final de Estambul?', o:['Milan','Liverpool','Chelsea','Juventus','Real Madrid'], c:1 },
+  { t:'¿Cuál fue la primera selección africana en llegar a semifinales de un Mundial?', o:['Nigeria','Senegal','Ghana','Marruecos','Camerún'], c:3 },
+  { t:'¿Qué dorsal llevaba Diego Maradona en el Mundial 1986?', o:['7','9','10','11','8'], c:2 },
+  { t:'¿Qué jugador ganó 5 Balones de Oro antes de 2020 además de Messi y Cristiano?', o:['Platini','Cruyff','Van Basten','Ronaldo Nazário','Nadie'], c:4 },
+  { t:'¿Qué selección es conocida como “Los Tres Leones”?', o:['Escocia','Inglaterra','Irlanda','Gales','Países Bajos'], c:1 }
+]
   ];
 
   // ====== Utils ======
@@ -148,8 +169,7 @@
            + '<div style="height:8px"></div>'
            + '<button id="start" class="btn">Empezar</button>'
            + '<button id="goRanking" class="input" style="margin-top:6px;width:100%;text-align:center;font-weight:600">Ver ranking</button>'
-           + '<p class="muted">El juego consiste en '+QUESTIONS_COUNT+' preguntas. Cada acierto son 1 punto; si encadenas '+STREAK_BONUS_AT+' seguidas, ganas +1 extra.</p>'
-           + '<p class="muted">Se mostrará un ranking histórico al terminar.</p>';
+           + '<p class="muted">El juego consiste en '+QUESTIONS_COUNT+' preguntas. Cada acierto es 1 punto; si encadenas '+STREAK_BONUS_AT+' seguidas, ganas +1 extra.</p>';
     },
     quiz:function(){
       var q=state.questions[state.qIndex];
